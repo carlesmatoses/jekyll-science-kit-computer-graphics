@@ -203,13 +203,9 @@ module JekyllSkcg
 
           ref = references[@key]
           title = h(ref["title"])
-          url = ref["url"]
 
-          if url
-            "<a href='#{url}'>#{title}</a>"
-          else
-            "<a href='##{@key}'>#{title}</a>"
-          end
+          # Always link to local bibliography entry, like in academic papers
+          "<a href='##{@key}' class='citation-link'>#{title}</a>"
         else
           "<span class='missing-ref'>[Missing: #{@key}]</span>"
         end
