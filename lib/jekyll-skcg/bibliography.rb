@@ -47,26 +47,62 @@ module JekyllSkcg
 
         html = "<div class='bibliography'>"
         references.each do |key, entry|
-          title     = h(entry["title"])
-          authors   = h(entry["author"])
-          year      = h(entry["year"])
-          publisher = h(entry["publisher"])
-          journal   = entry["journal"] ? "<i>#{h(entry["journal"])}</i>" : nil
-          volume    = entry["volume"] ? "Vol. #{h(entry["volume"])}" : nil
-          pages     = entry["pages"] ? "pp. #{h(entry["pages"])}" : nil
-          doi       = entry["doi"] ? "<a href='#{entry["doi"]}'>DOI</a>" : nil
-          url       = entry["url"] ? "<a href='#{entry["url"]}'>Link</a>" : nil
-
-          html << "<p id='#{key}'>"
-          html << "<strong>#{title}</strong><br>"
-          html << "#{authors}<br>"
-          html << "#{year}<br>" if year
-          html << "#{publisher}<br>" if publisher
-          html << "#{[journal, volume, pages].compact.join(', ')}<br>" if journal || volume || pages
-          html << "#{[doi, url].compact.join(' | ')}" if doi || url
-          html << "</p>\n"
+          html << format_reference(key, entry)
         end
         html << "</div>\n"
+        html
+      end
+
+      private
+
+      def format_reference(key, entry)
+        # Extract and clean data
+        title = entry["title"]
+        authors = entry["author"]
+        year = entry["year"]
+        publisher = entry["publisher"]
+        journal = entry["journal"]
+        volume = entry["volume"]
+        pages = entry["pages"]
+        doi = entry["doi"]
+        url = entry["url"]
+
+        # Build citation parts
+        citation_parts = []
+        
+        # Authors (required)
+        citation_parts << h(authors) if authors && !authors.empty?
+        
+        # Year in parentheses
+        citation_parts << "(#{h(year)})" if year && !year.empty?
+        
+        # Title in quotes
+        citation_parts << "\"#{h(title)}\"" if title && !title.empty?
+        
+        # Journal/Publisher info
+        if journal && !journal.empty?
+          journal_part = "<i>#{h(journal)}</i>"
+          if volume && !volume.empty?
+            journal_part += ", #{h(volume)}"
+          end
+          if pages && !pages.empty?
+            journal_part += ", #{h(pages)}"
+          end
+          citation_parts << journal_part
+        elsif publisher && !publisher.empty?
+          citation_parts << h(publisher)
+        end
+        
+        # Links
+        links = []
+        links << "<a href='#{doi}'>DOI</a>" if doi && !doi.empty?
+        links << "<a href='#{url}'>URL</a>" if url && !url.empty?
+        citation_parts << links.join(" | ") unless links.empty?
+
+        # Construct the final HTML
+        html = "<p id='#{key}' class='bibliography-entry'>"
+        html << citation_parts.join(". ")
+        html << ".</p>\n"
         html
       end
 
