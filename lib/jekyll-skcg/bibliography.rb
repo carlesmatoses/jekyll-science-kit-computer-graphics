@@ -67,40 +67,40 @@ module JekyllSkcg
         doi = entry["doi"]
         url = entry["url"]
 
-        # Build citation parts
+        # Build citation parts with CSS classes
         citation_parts = []
         
         # Authors (required)
-        citation_parts << h(authors) if authors && !authors.empty?
+        citation_parts << "<span class='bib-authors'>#{h(authors)}</span>" if authors && !authors.empty?
         
         # Year in parentheses
-        citation_parts << "(#{h(year)})" if year && !year.empty?
+        citation_parts << "<span class='bib-year'>(#{h(year)})</span>" if year && !year.empty?
         
         # Title in quotes
-        citation_parts << "\"#{h(title)}\"" if title && !title.empty?
+        citation_parts << "<span class='bib-title'>\"#{h(title)}\"</span>" if title && !title.empty?
         
         # Journal/Publisher info
         if journal && !journal.empty?
-          journal_part = "<i>#{h(journal)}</i>"
+          journal_part = "<span class='bib-journal'><i>#{h(journal)}</i></span>"
           if volume && !volume.empty?
-            journal_part += ", #{h(volume)}"
+            journal_part += ", <span class='bib-volume'>#{h(volume)}</span>"
           end
           if pages && !pages.empty?
-            journal_part += ", #{h(pages)}"
+            journal_part += ", <span class='bib-pages'>#{h(pages)}</span>"
           end
           citation_parts << journal_part
         elsif publisher && !publisher.empty?
-          citation_parts << h(publisher)
+          citation_parts << "<span class='bib-publisher'>#{h(publisher)}</span>"
         end
         
         # Links
         links = []
-        links << "<a href='#{doi}'>DOI</a>" if doi && !doi.empty?
-        links << "<a href='#{url}'>URL</a>" if url && !url.empty?
+        links << "<span class='bib-doi'><a href='#{doi}'>DOI</a></span>" if doi && !doi.empty?
+        links << "<span class='bib-url'><a href='#{url}'>URL</a></span>" if url && !url.empty?
         citation_parts << links.join(" | ") unless links.empty?
 
         # Construct the final HTML
-        html = "<p id='#{key}' class='bibliography-entry'>"
+        html = "<p id='#{key}' class='bibliography-entry' data-key='#{key}'>"
         html << citation_parts.join(". ")
         html << ".</p>\n"
         html
