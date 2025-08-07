@@ -41,13 +41,19 @@ module JekyllSkcg
     end
 
     class BibliographyTag < Liquid::Tag
+      def initialize(tag_name, text, tokens)
+        super
+        @style = text.strip.downcase
+        @style = "ieee" if @style.empty? # Default to IEEE style
+      end
+
       def render(context)
         site = context.registers[:site]
         references = site.data["references"] || {}
 
-        html = "<div class='bibliography'>"
+        html = "<div class='bibliography bibliography-#{@style}'>"
         references.each do |key, entry|
-          html << format_reference(key, entry)
+          html << format_reference(key, entry, @style)
         end
         html << "</div>\n"
         html
@@ -55,7 +61,18 @@ module JekyllSkcg
 
       private
 
-      def format_reference(key, entry)
+      def format_reference(key, entry, style = "ieee")
+        case style
+        when "apa"
+          format_apa_reference(key, entry)
+        when "ieee"
+          format_ieee_reference(key, entry)
+        else
+          format_ieee_reference(key, entry) # Default fallback
+        end
+      end
+
+      def format_ieee_reference(key, entry)
         # Extract and clean data
         title = entry["title"]
         authors = entry["author"]
@@ -67,14 +84,11 @@ module JekyllSkcg
         doi = entry["doi"]
         url = entry["url"]
 
-        # Build citation parts with CSS classes
+        # Build citation parts with CSS classes (IEEE style)
         citation_parts = []
         
         # Authors (required)
         citation_parts << "<span class='bib-authors'>#{h(authors)}</span>" if authors && !authors.empty?
-        
-        # Year in parentheses
-        citation_parts << "<span class='bib-year'>(#{h(year)})</span>" if year && !year.empty?
         
         # Title in quotes
         citation_parts << "<span class='bib-title'>\"#{h(title)}\"</span>" if title && !title.empty?
@@ -83,7 +97,67 @@ module JekyllSkcg
         if journal && !journal.empty?
           journal_part = "<span class='bib-journal'><i>#{h(journal)}</i></span>"
           if volume && !volume.empty?
-            journal_part += ", <span class='bib-volume'>#{h(volume)}</span>"
+            journal_part += ", vol. <span class='bib-volume'>#{h(volume)}</span>"
+          end
+          if pages && !pages.empty?
+            journal_part += ", pp. <span class='bib-pages'>#{h(pages)}</span>"
+          end
+          if year && !year.empty?
+            journal_part += ", <span class='bib-year'>#{h(year)}</span>"
+          end
+          citation_parts << journal_part
+        elsif publisher && !publisher.empty?
+          publisher_part = "<span class='bib-publisher'>#{h(publisher)}</span>"
+          if year && !year.empty?
+            publisher_part += ", <span class='bib-year'>#{h(year)}</span>"
+          end
+          citation_parts << publisher_part
+        elsif year && !year.empty?
+          citation_parts << "<span class='bib-year'>#{h(year)}</span>"
+        end
+        
+        # Links
+        links = []
+        links << "<span class='bib-doi'><a href='#{doi}'>DOI</a></span>" if doi && !doi.empty?
+        links << "<span class='bib-url'><a href='#{url}'>URL</a></span>" if url && !url.empty?
+        citation_parts << links.join(" | ") unless links.empty?
+
+        # Construct the final HTML
+        html = "<p id='#{key}' class='bibliography-entry ieee-style' data-key='#{key}'>"
+        html << citation_parts.join(", ")
+        html << ".</p>\n"
+        html
+      end
+
+      def format_apa_reference(key, entry)
+        # Extract and clean data
+        title = entry["title"]
+        authors = entry["author"]
+        year = entry["year"]
+        publisher = entry["publisher"]
+        journal = entry["journal"]
+        volume = entry["volume"]
+        pages = entry["pages"]
+        doi = entry["doi"]
+        url = entry["url"]
+
+        # Build citation parts with CSS classes (APA style)
+        citation_parts = []
+        
+        # Authors (required)
+        citation_parts << "<span class='bib-authors'>#{h(authors)}</span>" if authors && !authors.empty?
+        
+        # Year in parentheses
+        citation_parts << "<span class='bib-year'>(#{h(year)})</span>" if year && !year.empty?
+        
+        # Title (no quotes in APA)
+        citation_parts << "<span class='bib-title'>#{h(title)}</span>" if title && !title.empty?
+        
+        # Journal/Publisher info
+        if journal && !journal.empty?
+          journal_part = "<span class='bib-journal'><i>#{h(journal)}</i></span>"
+          if volume && !volume.empty?
+            journal_part += ", <span class='bib-volume'><i>#{h(volume)}</i></span>"
           end
           if pages && !pages.empty?
             journal_part += ", <span class='bib-pages'>#{h(pages)}</span>"
@@ -100,7 +174,7 @@ module JekyllSkcg
         citation_parts << links.join(" | ") unless links.empty?
 
         # Construct the final HTML
-        html = "<p id='#{key}' class='bibliography-entry' data-key='#{key}'>"
+        html = "<p id='#{key}' class='bibliography-entry apa-style' data-key='#{key}'>"
         html << citation_parts.join(". ")
         html << ".</p>\n"
         html
