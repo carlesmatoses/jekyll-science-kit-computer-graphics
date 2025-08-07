@@ -52,11 +52,11 @@ module JekyllSkcg
         references = site.data["references"] || {}
 
         html = "<div class='bibliography bibliography-#{@style}'>"
-        html << "<ul class='bibliography-list'>"
+        html << "<ol class='bibliography-list'>"
         references.each do |key, entry|
           html << format_reference(key, entry, @style)
         end
-        html << "</ul>"
+        html << "</ol>"
         html << "</div>\n"
         html
       end
