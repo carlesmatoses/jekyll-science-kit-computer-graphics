@@ -52,9 +52,11 @@ module JekyllSkcg
         references = site.data["references"] || {}
 
         html = "<div class='bibliography bibliography-#{@style}'>"
+        html << "<ul class='bibliography-list'>"
         references.each do |key, entry|
           html << format_reference(key, entry, @style)
         end
+        html << "</ul>"
         html << "</div>\n"
         html
       end
@@ -123,9 +125,9 @@ module JekyllSkcg
         citation_parts << links.join(" | ") unless links.empty?
 
         # Construct the final HTML
-        html = "<p id='#{key}' class='bibliography-entry ieee-style' data-key='#{key}'>"
+        html = "<li id='#{key}' class='bibliography-entry ieee-style' data-key='#{key}'>"
         html << citation_parts.join(", ")
-        html << ".</p>\n"
+        html << ".</li>\n"
         html
       end
 
@@ -174,9 +176,9 @@ module JekyllSkcg
         citation_parts << links.join(" | ") unless links.empty?
 
         # Construct the final HTML
-        html = "<p id='#{key}' class='bibliography-entry apa-style' data-key='#{key}'>"
+        html = "<li id='#{key}' class='bibliography-entry apa-style' data-key='#{key}'>"
         html << citation_parts.join(". ")
-        html << ".</p>\n"
+        html << ".</li>\n"
         html
       end
 
