@@ -201,13 +201,45 @@ module JekyllSkcg
         site.data["citations_used"] ||= []
 
         if references[@key]
-          site.data["citations_used"] << @key unless site.data["citations_used"].include?(@key)
+          # Add to citations_used if not already present
+          unless site.data["citations_used"].include?(@key)
+            site.data["citations_used"] << @key
+          end
+          
+          # Get the citation number (1-based index)
+          citation_number = site.data["citations_used"].index(@key) + 1
 
           ref = references[@key]
-          title = h(ref["title"])
+          
+          # Extract citation components
+          title = ref["title"]
+          author = ref["author"]
+          year = ref["year"]
 
+          # Build citation parts with available fields
+          citation_parts = []
+          
+          # Add title if available
+          if title && !title.empty? && title != "Untitled"
+            citation_parts << "<span class='citation-link-title'>#{h(title)}</span>"
+          end
+          
+          # Add author if available
+          if author && !author.empty? && author != "Unknown Author"
+            citation_parts << "<span class='citation-link-author'>#{h(author)}</span>"
+          end
+          
+          # Add year if available
+          if year && !year.empty? && year != "Unknown Year"
+            citation_parts << "<span class='citation-link-year'>#{h(year)}</span>"
+          end
+
+          # Construct the citation link with number and details
+          citation_details = citation_parts.empty? ? "" : ": " + citation_parts.join("; ")
+          citation_text = "[<span class='citation-number'>#{citation_number}</span>#{citation_details}]"
+          
           # Always link to local bibliography entry, like in academic papers
-          "<a href='##{@key}' class='citation-link'>#{title}</a>"
+          "<a href='##{@key}' class='citation-link'>#{citation_text}</a>"
         else
           "<span class='missing-ref'>[Missing: #{@key}]</span>"
         end
