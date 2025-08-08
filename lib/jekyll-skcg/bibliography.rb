@@ -17,7 +17,8 @@ module JekyllSkcg
         bib = BibTeX.open(bib_path, filter: :latex)
 
         site.data["references"] = {}
-        site.data["citations_used"] = []
+        # Initialize citations_used only if it doesn't exist yet
+        site.data["citations_used"] ||= []
 
         bib.each do |entry|
           key = entry.key.to_s
@@ -50,12 +51,18 @@ module JekyllSkcg
       def render(context)
         site = context.registers[:site]
         references = site.data["references"] || {}
+        citations_used = site.data["citations_used"] || []
 
         html = "<div class='bibliography bibliography-#{@style}'>"
         html << "<ol class='bibliography-list'>"
-        references.each do |key, entry|
-          html << format_reference(key, entry, @style)
+        
+        # Only render citations that have been used, in the order they were cited
+        citations_used.each do |key|
+          if references[key]
+            html << format_reference(key, references[key], @style)
+          end
         end
+        
         html << "</ol>"
         html << "</div>\n"
         html
