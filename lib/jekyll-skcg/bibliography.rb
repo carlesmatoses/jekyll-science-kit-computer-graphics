@@ -18,7 +18,7 @@ module JekyllSkcg
 
         site.data["references"] = {}
         # Initialize citations_used only if it doesn't exist yet
-        site.data["citations_used"] ||= []
+        site.data["citations_used"] = []
 
         bib.each do |entry|
           key = entry.key.to_s
