@@ -110,19 +110,20 @@ module JekyllSkcg
         image_width = ((100.0 - (gap * (col - 1))) / col - epsilon).round(2)
       end
 
+      # Add CSS classes and reduce inline styles
       images_html = image_lines.map do |line|
         <<~HTML.strip
-          <img src="#{line}" alt="fig #{number}: #{caption}" style="width: #{image_width}%; height: auto;">
+          <img src="#{line}" alt="fig #{number}: #{caption}" class="figure-image" style="width: #{image_width}%;">
         HTML
       end.join("\n")
 
       <<~HTML
-          <figure id="#{id}" style="width: #{container_width}%; display: flex; flex-direction: column; align-items: center;">
-            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: #{gap}em;">
-              #{images_html}
-            </div>
-            <figcaption style="text-align: center; margin-top: 0.5em;">fig #{number}: #{caption}</figcaption>
-          </figure>
+        <figure id="#{id}" class="figure-block" style="width: #{container_width}%;" data-figure-number="#{number}">
+          <div class="figure-images" style="gap: #{gap}em;">
+            #{images_html}
+          </div>
+          <figcaption class="figure-caption">fig #{number}: #{caption}</figcaption>
+        </figure>
       HTML
     end
   end
