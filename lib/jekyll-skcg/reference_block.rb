@@ -149,7 +149,21 @@ module JekyllSkcg
 
 end
 
+
+class EquationInlineTag < Liquid::Tag
+  def initialize(tag_name, markup, tokens)
+    super
+    @formula = markup.strip
+  end
+
+  def render(_context)
+    # Output KaTeX/MathJax inline math delimiters
+    "<span class=\"equation-inline\">$#{@formula}$</span>"
+  end
+end
+
 Liquid::Template.register_tag('ref', JekyllSkcg::RefTag)
 Liquid::Template.register_tag('referenceable_block', JekyllSkcg::ReferenceableBlock)
 Liquid::Template.register_tag('figure', JekyllSkcg::FigureBlock)
 Liquid::Template.register_tag('equation', JekyllSkcg::EquationBlock)
+Liquid::Template.register_tag('equation_inline', EquationInlineTag)
