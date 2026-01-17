@@ -9,6 +9,8 @@ module JekyllSkcg
 end
 
 # Load all extension files
+require_relative "jekyll-skcg/asset_generator"
+require_relative "jekyll-skcg/script_injector"
 require_relative "jekyll-skcg/bibliography"
 require_relative "jekyll-skcg/reference_block"
 require_relative "jekyll-skcg/alerts"
