@@ -11,8 +11,8 @@ module JekyllSkcg
       { type: :script, url: 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js' },
       { type: :script, url: 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/EXRLoader.js' },
       { type: :script, url: 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js' },
-      # dat.GUI
-      { type: :script, url: 'https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js' },
+      # lil-gui (modern replacement for dat.GUI)
+      { type: :script, url: 'https://cdn.jsdelivr.net/npm/lil-gui@0.19' },
     ].freeze
 
     GEM_ASSETS = [
