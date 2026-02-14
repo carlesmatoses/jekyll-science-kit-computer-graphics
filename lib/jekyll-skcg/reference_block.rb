@@ -112,9 +112,23 @@ module JekyllSkcg
 
       # Add CSS classes and reduce inline styles
       images_html = image_lines.map do |line|
-        <<~HTML.strip
-          <img src="#{line}" alt="fig #{number}: #{caption}" class="figure-image" style="width: #{image_width}%;">
-        HTML
+        # Detect YouTube URLs and embed as iframe
+        youtube_id = nil
+        if line =~ %r{(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]+)}
+          youtube_id = $1
+        end
+        if youtube_id
+          # Responsive YouTube embed
+          <<~HTML.strip
+            <div class="figure-video" style="width: #{image_width}%; aspect-ratio: 16/9; position: relative;">
+              <iframe src="https://www.youtube.com/embed/#{youtube_id}" title="YouTube video" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0;"></iframe>
+            </div>
+          HTML
+        else
+          <<~HTML.strip
+            <img src="#{line}" alt="fig #{number}: #{caption}" class="figure-image" style="width: #{image_width}%;">
+          HTML
+        end
       end.join("\n")
 
       <<~HTML
@@ -135,14 +149,16 @@ module JekyllSkcg
       label = @id
 
       <<~HTML
-        <div id="#{label}" class="equation-block" style="display: flex; justify-content: space-between; align-items: center; margin: 1em 0;">
-          <div style="flex: 1;">
-            \\[
-              #{content}
-            \\]
-          </div>
-          <div style="margin-left: 1em; white-space: nowrap;">(#{equation_number})</div>
+      <div id="#{label}" class="equation-block" style="display: flex; justify-content: space-between; align-items: center; margin: 1em 0;">
+        <div style="flex: 1; overflow-x: auto; max-width: 100%;">
+        <div style="min-width: max-content;">
+          \\[
+          #{content}
+          \\]
         </div>
+        </div>
+        <div style="margin-left: 1em; white-space: nowrap;">(#{equation_number})</div>
+      </div>
       HTML
     end
   end
