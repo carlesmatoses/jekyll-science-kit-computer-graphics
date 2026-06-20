@@ -125,103 +125,100 @@
     margin-left: 2rem !important;
 } */
 
-/* Images Styles */
-/* Basic figure styling */
+/* Figure block — outer container */
 .figure-block {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 1.5em 0;
+  margin: 1.5em auto;
 }
 
-.figure-images {
+/* Row of children: flex-wrap lets width percentages control columns */
+.figure-content {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
+  align-items: stretch; /* all children in a row share the same height */
   width: 100%;
-  /* min-height removed for better video compatibility */
+  gap: 0.5em;
+  box-sizing: border-box;
 }
 
-.figure-image {
-  height: auto;
-  max-height: 400px; /* Control maximum height */
-  max-width: 100%;
-  object-fit: contain; /* Preserve aspect ratio */
+/* Each minipage-like child */
+.fig-child {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Image inside a fig-child fills the available height of its cell */
+.fig-child .figure-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  flex: 1; /* grow to fill remaining height before sub-caption */
+  min-height: 0;
   border-radius: 4px;
-  /* box-shadow: 0 2px 8px rgba(0,0,0,0.1); */
 }
 
+/* Sub-caption sits at the bottom of every child, pinned to the same baseline */
+.fig-child-caption {
+  text-align: center;
+  margin: 0.3em 0 0;
+  font-size: 0.85em;
+  font-style: italic;
+  color: #555;
+  width: 100%;
+}
+
+/* Main figure caption */
+.figure-caption {
+  text-align: center;
+  margin-top: 0.6em;
+  font-style: italic;
+  color: #666;
+  width: 100%;
+}
+
+/* YouTube / video embed inside a fig-child */
 .figure-video {
   width: 100%;
-  max-width: 100%;
   aspect-ratio: 16/9;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0.5em 0;
   background: #000;
+  border-radius: 4px;
+  flex: 1;
+  min-height: 0;
 }
 
 .figure-video iframe {
-  width: 100%;
-  height: 100%;
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
   border-radius: 4px;
   display: block;
-  background: #000;
 }
 
-.figure-caption {
-  text-align: center;
-  margin-top: 0.5em;
-  font-style: italic;
-  color: #666;
+/* Mermaid inside a fig-child */
+.fig-child .mermaid {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
-/* Responsive height controls */
-/* @media (max-width: 768px) {
-  .figure-image {
-    max-height: 250px;
+/* Responsive: stack all children vertically on small screens */
+@media (max-width: 500px) {
+  .figure-block {
+    width: 100% !important;
   }
-} */
 
-/* Responsive layout for small screens */
-@media (max-width: 500px) {
-    .figure-images {
-        flex-direction: column;
-        align-items: center;
-        gap: 1em;
-    }
-    
-    .figure-image {
-        width: 100% !important;
-        max-width: 100% !important;
-        max-height: 300px;
-    }
+  .fig-child {
+    width: 100% !important;
+  }
 }
-
-@media (max-width: 500px) {
-    .figure-block {
-        flex-direction: column;
-        align-items: center;
-        width: 100% !important;
-    }
-}
-
-/* Special styling for multi-image figures */
-.figure-images:has(> .figure-image:nth-child(2)) .figure-image {
-  max-height: 300px; /* Smaller max height for multi-image figures */
-}
-
-/* Style based on figure number */
-/* .figure-block[data-figure-number="1"] {
-  border-left: 3px solid #007acc;
-  padding-left: 1em;
-} */
 
 
 /* styloe for alerts */

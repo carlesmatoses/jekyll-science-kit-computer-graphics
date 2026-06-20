@@ -1,33 +1,24 @@
 # reference_block.rb
 module JekyllSkcg
   
-  class ReferenceCollector < Jekyll::Generator
-    safe true
-    priority :low  # Run after site is read, before rendering
+  # Resolves {% ref type:id %} placeholders after each document renders,
+  # once all referenceable blocks have self-registered their numbers.
+  # this hook is called for both pages and documents (posts, collections, etc.) and 
+  # it is executed after the document has been rendered, so we can safely modify the output.
+  Jekyll::Hooks.register [:pages, :documents], :post_render do |doc|
+    next unless doc.output
 
-    def generate(site)
-      # Initialize refs for each document separately
-      referenceable_tags = %w[figure equation table]
-      all_docs = site.pages + site.posts.docs + site.collections.values.flat_map(&:docs)
+    # the already rendered document has a placeholder for each reference, we need to replace them with the actual numbers
+    doc.output = doc.output.gsub(/<span class="ref-placeholder" data-ref-type="([^"]+)" data-ref-id="([^"]+)"><\/span>/) do
+      type = $1
+      id   = $2
+      refs = doc.data["refs"] || {}
+      number = refs.dig(type, id)
 
-      all_docs.each do |doc|
-        # Initialize refs for this specific document
-        doc.data["refs"] = {}
-        content = doc.content
-
-        referenceable_tags.each do |tag|
-          # Match both inline and block tags with attributes (like id="foo")
-          tag_regex = /\{%\s*#{tag}\s+([^%]+?)%\}/
-
-          content.scan(tag_regex) do |markup|
-            attrs = Hash[markup[0].scan(/(\w+)\s*=\s*"([^"]+)"/)]
-            id = attrs["id"]
-            next unless id
-
-            doc.data["refs"][tag] ||= {}
-            doc.data["refs"][tag][id] ||= doc.data["refs"][tag].size + 1
-          end
-        end
+      if number
+        "<a href='##{id}'>#{number}</a>"
+      else
+        "<span class='missing-ref'>[??]</span>"
       end
     end
   end
@@ -74,70 +65,116 @@ module JekyllSkcg
       @type, @id = markup.strip.split(':', 2)
     end
 
-    def render(context)
-      # Get the current page/post instead of site
-      page = context.registers[:page]
-      refs = page["refs"] || {}
-      number = refs.dig(@type, @id)
-
-      if number
-        "<a href='##{@id}'>#{number}</a>"
-      else
-        # Placeholder for unresolved references
-        "<span class='missing-ref'>[??]</span>"
-      end
+    def render(_context)
+      "<span class=\"ref-placeholder\" data-ref-type=\"#{@type}\" data-ref-id=\"#{@id}\"></span>"
     end
   end
 
   class FigureBlock < ReferenceableBlock
     def render_content(number, content)
-      size = (@attributes["size"] || "1.0").to_f.clamp(0.0, 1.0)
+      width   = @attributes["width"] || "100%"
       caption = @attributes["caption"] || "Figure"
-      id = @id
-      col = (@attributes["col"] || "0").to_i
-
-      image_lines = content.lines.map(&:strip).reject(&:empty?)
-      return "<!-- no images in figure -->" if image_lines.empty?
-
-      container_width = (size * 100).round(2)
-      epsilon = 1 # Small value to make images slightly smaller
-      gap = 0.5 # Gap between images in `em` (same as in CSS)
-      num_images = image_lines.size
-
-      # Adjust image width to account for the gap
-      image_width = ((100.0 - (gap * (num_images - 1))) / num_images - epsilon).round(2)
-      if col > 0
-        image_width = ((100.0 - (gap * (col - 1))) / col - epsilon).round(2)
-      end
-
-      # Add CSS classes and reduce inline styles
-      images_html = image_lines.map do |line|
-        # Detect YouTube URLs and embed as iframe
-        youtube_id = nil
-        if line =~ %r{(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]+)}
-          youtube_id = $1
-        end
-        if youtube_id
-          # Responsive YouTube embed
-          <<~HTML.strip
-            <div class="figure-video" style="width: #{image_width}%; aspect-ratio: 16/9; position: relative;">
-              <iframe src="https://www.youtube.com/embed/#{youtube_id}" title="YouTube video" frameborder="0" allowfullscreen style="width:100%; height:100%; position:absolute; top:0; left:0;"></iframe>
-            </div>
-          HTML
-        else
-          <<~HTML.strip
-            <img src="#{line}" alt="fig #{number}: #{caption}" class="figure-image" style="width: #{image_width}%;">
-          HTML
-        end
-      end.join("\n")
+      id      = @id
 
       <<~HTML
-        <figure id="#{id}" class="figure-block" style="width: #{container_width}%;" data-figure-number="#{number}">
-          <div class="figure-images" style="gap: #{gap}em;">
-            #{images_html}
+        <figure id="#{id}" class="figure-block" style="width: #{width};" data-figure-number="#{number}">
+          <div class="figure-content">
+            #{content.strip}
           </div>
-          <figcaption class="figure-caption">fig #{number}: #{caption}</figcaption>
+          <figcaption class="figure-caption">Fig. #{number}: #{caption}</figcaption>
         </figure>
+      HTML
+    end
+  end
+
+  # Base class for tags that live inside a {% figure %} block.
+  # Subclasses implement +render_child(context)+ returning the inner HTML
+  # (without the fig-child wrapper).
+  class FigChildBlock < Liquid::Block
+    def initialize(tag_name, markup, tokens)
+      super
+      @attributes = {}
+      markup.scan(/(\w+)\s*=\s*"([^"]+)"/) { |k, v| @attributes[k] = v }
+    end
+
+    def render(context)
+      width   = @attributes["width"] || "100%"
+      caption = @attributes["caption"]
+      inner   = render_child(context)
+
+      caption_html = caption ? "<p class=\"fig-child-caption\">#{caption}</p>" : ""
+
+      <<~HTML.strip
+        <div class="fig-child" style="width: #{width};">
+          #{inner.strip}
+          #{caption_html}
+        </div>
+      HTML
+    end
+
+    def render_child(context)
+      raise NotImplementedError
+    end
+  end
+
+  class FigImageTag < Liquid::Tag
+    YOUTUBE_RE = %r{(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]+)}
+
+    def initialize(tag_name, markup, tokens)
+      super
+      @attributes = {}
+      markup.scan(/(\w+)\s*=\s*"([^"]+)"/) { |k, v| @attributes[k] = v }
+    end
+
+    def render(_context)
+      width   = @attributes["width"] || "100%"
+      src     = @attributes["src"] || ""
+      alt     = @attributes["alt"] || ""
+      caption = @attributes["caption"]
+
+      inner_html = if (m = src.match(YOUTUBE_RE))
+        youtube_id = m[1]
+        <<~HTML.strip
+          <div class="figure-video">
+            <iframe src="https://www.youtube.com/embed/#{youtube_id}" title="#{alt}" frameborder="0" allowfullscreen></iframe>
+          </div>
+        HTML
+      else
+        "<img src=\"#{src}\" alt=\"#{alt}\" class=\"figure-image\">"
+      end
+
+      caption_html = caption ? "<p class=\"fig-child-caption\">#{caption}</p>" : ""
+
+      <<~HTML.strip
+        <div class="fig-child" style="width: #{width};">
+          #{inner_html}
+          #{caption_html}
+        </div>
+      HTML
+    end
+  end
+
+  class FigMermaidBlock < FigChildBlock
+    def render_child(context)
+      code = super(context).strip  # Liquid::Block#render evaluates inner tags — we want raw text
+      # super here calls Liquid::Block's render which processes inner liquid; we need raw content
+      "<div class=\"mermaid\">#{nodelist.map { |n| n.respond_to?(:raw_value) ? n.raw_value : n.to_s }.join}</div>"
+    end
+
+    def render(context)
+      width   = @attributes["width"] || "100%"
+      caption = @attributes["caption"]
+
+      # Collect raw text from nodelist (mermaid syntax must not be Liquid-processed)
+      raw_code = nodelist.map(&:to_s).join.strip
+      mermaid_html = "<div class=\"mermaid\">#{raw_code}</div>"
+      caption_html = caption ? "<p class=\"fig-child-caption\">#{caption}</p>" : ""
+
+      <<~HTML.strip
+        <div class="fig-child" style="width: #{width};">
+          #{mermaid_html}
+          #{caption_html}
+        </div>
       HTML
     end
   end
@@ -149,16 +186,16 @@ module JekyllSkcg
       label = @id
 
       <<~HTML
-      <div id="#{label}" class="equation-block" style="display: flex; justify-content: space-between; align-items: center; margin: 1em 0;">
-        <div style="flex: 1; overflow-x: auto; max-width: 100%;">
-        <div style="min-width: max-content;">
-          \\[
-          #{content}
-          \\]
+        <div id="#{label}" class="equation-block" style="display: flex; justify-content: space-between; align-items: center; margin: 1em 0;">
+          <div style="flex: 1; overflow-x: auto; max-width: 100%;">
+            <div style="min-width: max-content;">
+              \\[
+              #{content}
+              \\]
+            </div>
+          </div>
+          <div style="margin-left: 1em; white-space: nowrap;">(#{equation_number})</div>
         </div>
-        </div>
-        <div style="margin-left: 1em; white-space: nowrap;">(#{equation_number})</div>
-      </div>
       HTML
     end
   end
@@ -181,5 +218,7 @@ end
 Liquid::Template.register_tag('ref', JekyllSkcg::RefTag)
 Liquid::Template.register_tag('referenceable_block', JekyllSkcg::ReferenceableBlock)
 Liquid::Template.register_tag('figure', JekyllSkcg::FigureBlock)
+Liquid::Template.register_tag('fig_img', JekyllSkcg::FigImageTag)
+Liquid::Template.register_tag('fig_mermaid', JekyllSkcg::FigMermaidBlock)
 Liquid::Template.register_tag('equation', JekyllSkcg::EquationBlock)
 Liquid::Template.register_tag('equation_inline', EquationInlineTag)
