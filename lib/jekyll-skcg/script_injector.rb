@@ -21,8 +21,8 @@ module JekyllSkcg
     ].freeze
 
     class << self
-      def build_injection_html_public
-        build_injection_html
+      def build_injection_html_public(include_viewer_deps: true)
+        build_injection_html(include_viewer_deps: include_viewer_deps)
       end
       
       def inject_into_document(document)
@@ -53,19 +53,22 @@ module JekyllSkcg
 
       private
 
-      def build_injection_html
+      def build_injection_html(include_viewer_deps: true)
         html = "\n  <!-- Jekyll Science Kit Computer Graphics - Auto-injected dependencies -->\n"
-        
-        # Add external dependencies
-        EXTERNAL_DEPENDENCIES.each do |dep|
-          html += build_tag(dep)
+
+        # External (Three.js etc.) dependencies are only needed by the glb_viewer widget
+        if include_viewer_deps
+          EXTERNAL_DEPENDENCIES.each do |dep|
+            html += build_tag(dep)
+          end
         end
-        
-        # Add gem assets
+
+        # Gem's own CSS/JS style figure/alert/equation/ref blocks used on any page,
+        # so they're always included regardless of glb_viewer usage.
         GEM_ASSETS.each do |asset|
           html += build_tag(asset)
         end
-        
+
         html + "  <!-- End Jekyll Science Kit Computer Graphics dependencies -->\n"
       end
 
@@ -83,19 +86,19 @@ end
 
 # Register the hook - use :post_write to modify files after they're written
 Jekyll::Hooks.register :site, :post_write do |site|
-  # Find all HTML files in _site that contain glb-viewer
+  # The gem's CSS/JS style figure/alert/equation/ref blocks, used on any page that
+  # renders those tags - so every page gets them. The external Three.js dependencies
+  # are heavy and only needed by pages that render a glb_viewer widget.
   Dir.glob(File.join(site.dest, '**', '*.html')).each do |file_path|
     content = File.read(file_path)
-    
-    # Skip if no glb-viewer
-    next unless content.include?('glb-viewer')
-    
+
     # Skip if already injected
     next if content.include?('Jekyll Science Kit Computer Graphics - Auto-injected')
-    
+
     # Find </head> and inject
     if content =~ /<\/head>/
-      injection = JekyllSkcg::ScriptInjector.build_injection_html_public
+      include_viewer_deps = content.include?('glb-viewer')
+      injection = JekyllSkcg::ScriptInjector.build_injection_html_public(include_viewer_deps: include_viewer_deps)
       modified_content = content.sub('</head>', injection + '</head>')
       File.write(file_path, modified_content)
     end
